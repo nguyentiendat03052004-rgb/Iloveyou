@@ -1,3 +1,12 @@
+window.onerror = function (msg, url, line, col, err) {
+  const box = document.getElementById('error-log');
+  if (box) {
+    box.style.display = 'block';
+    box.textContent = `JS ERROR: ${msg}\n${url}:${line}:${col}`;
+  }
+  console.error(err || msg);
+};
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -296,47 +305,39 @@
         }
 
 function createPhotos() {
+  const borderMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, side: THREE.DoubleSide });
+  const borderGeo = new THREE.PlaneGeometry(12, 12); // hoặc size bạn muốn
 
-    for (let i = 0; i < photoTextures.length; i++) {
+  for (let i = 0; i < photoTextures.length; i++) {
+    const texture = photoTextures[i];
 
-        const texture = photoTextures[i];
+    // Nếu texture chưa load xong ảnh thì bỏ qua (tránh crash)
+    if (!texture || !texture.image) continue;
 
-        // lấy kích thước ảnh gốc
-        const imgW = texture.image.width;
-        const imgH = texture.image.height;
-        const aspect = imgW / imgH;
+    const imgW = texture.image.width;
+    const imgH = texture.image.height;
+    const baseHeight = 10;
+    const aspect = imgW / imgH;
 
-        const baseHeight = 10;
-        const baseWidth = baseHeight * aspect;
+    const geo = new THREE.PlaneGeometry(baseHeight * aspect, baseHeight);
+    const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
 
-        // geometry theo đúng tỉ lệ ảnh
-        const geo = new THREE.PlaneGeometry(baseWidth, baseHeight);
+    const mesh = new THREE.Mesh(geo, mat);
 
-        const mat = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.DoubleSide,
-            transparent: true
-        });
+    const border = new THREE.Mesh(
+      new THREE.PlaneGeometry(baseHeight * aspect + 1, baseHeight + 1),
+      borderMat
+    );
+    border.position.z = -0.1;
+    mesh.add(border);
 
-        const mesh = new THREE.Mesh(geo, mat);
-
-        // viền ảnh
-        const borderGeo = new THREE.PlaneGeometry(
-            baseWidth + 0.5,
-            baseHeight + 0.5
-        );
-        const border = new THREE.Mesh(borderGeo, borderMat);
-        border.position.z = -0.1;
-        mesh.add(border);
-
-        // trạng thái ban đầu
-        mesh.visible = false;
-        mesh.scale.set(0, 0, 0);
-
-        scene.add(mesh);
-        photoMeshes.push(mesh);
-    }
+    mesh.visible = false;
+    mesh.scale.set(0,0,0);
+    scene.add(mesh);
+    photoMeshes.push(mesh);
+  }
 }
+
 
 
         function createDecorations() {
@@ -546,18 +547,25 @@ function createPhotos() {
                 ctx.clearRect(0,0,100,75); ctx.drawImage(results.image, 0, 0, 100, 75);
 
                 // --- Hand Logic  ---
-                if (results.multiHandLandmarks.length === 2) {
-                    const h1 = results.multiHandLandmarks[0]; const h2 = results.multiHandLandmarks[1];
-                    const distIndex = Math.hypot(h1[8].x - h2[8].x, h1[8].y - h2[8].y);
-                    const distThumb = Math.hypot(h1[4].x - h2[4].x, h1[4].y - h2[4].y);
-                    if (distIndex < 0.15 && distThumb < 0.15) {
-                        state = 'HEART'; return;
-                    }
-                }
+                hands.onResults(results => {
+  ctx.clearRect(0,0,100,75);
+  ctx.drawImage(results.image, 0, 0, 100, 75);
 
-                if(results.multiHandLandmarks.length > 0) {
-                    const lm = results.multiHandLandmarks[0];
-                    handX = lm[9].x; 
+  const landmarks = results.multiHandLandmarks || [];
+
+  if (landmarks.length === 2) {
+    const h1 = landmarks[0], h2 = landmarks[1];
+    const distIndex = Math.hypot(h1[8].x - h2[8].x, h1[8].y - h2[8].y);
+    const distThumb = Math.hypot(h1[4].x - h2[4].x, h1[4].y - h2[4].y);
+    if (distIndex < 0.15 && distThumb < 0.15) {
+      state = 'HEART';
+      return;
+    }
+  }
+
+                if (landmarks.length > 0) {
+    const lm = landmarks[0];
+    handX = lm[9].x;
                     const tips = [8,12,16,20]; const wrist = lm[0];
                     let openDist = 0; tips.forEach(i => openDist += Math.hypot(lm[i].x-wrist.x, lm[i].y-wrist.y));
                     const avgDist = openDist / 4;
