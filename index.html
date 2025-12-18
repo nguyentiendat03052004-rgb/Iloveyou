@@ -91,7 +91,37 @@
         bgMusic.loop = true; bgMusic.volume = 1.0;
 
         const loader = new THREE.TextureLoader();
-        const photoFiles = ['./image1.jpeg', './image2.jpeg', './image3.jpeg', './image4.jpeg', './image5.jpeg'];
+       const photoFiles = [
+  './image1.jpeg',
+  './image2.jpeg',
+  './image3.jpeg',
+  './image4.jpeg',
+  './image5.jpeg',
+  './image6.jpeg',
+  './image7.jpeg',
+  './image8.jpeg',
+  './image9.jpeg',
+  './image10.jpeg',
+
+  './image11.jpg',
+  './image12.jpg',
+  './image13.jpg',
+  './image14.jpg',
+  './image15.jpg',
+  './image16.jpg',
+  './image17.jpg',
+  './image18.jpg',
+  './image19.jpg',
+  './image20.jpg',
+
+  './image21.jpg',
+  './image22.jpg',
+  './image23.jpg',
+  './image24.jpg',
+  './image25.jpg',
+  './image26.jpg',
+  './image27.jpg']
+;
         const photoTextures = [];
         photoFiles.forEach((f, i) => photoTextures[i] = loader.load(f));
 
@@ -265,22 +295,49 @@
             return points;
         }
 
-        function createPhotos() {
-            const geo = new THREE.PlaneGeometry(8, 8);
-            const borderGeo = new THREE.PlaneGeometry(9, 9); 
-            const borderMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 }); 
+function createPhotos() {
 
-            for(let i=0; i<5; i++) {
-                const mat = new THREE.MeshBasicMaterial({ map: photoTextures[i], side: THREE.DoubleSide });
-                const mesh = new THREE.Mesh(geo, mat);
-                const border = new THREE.Mesh(borderGeo, borderMat);
-                border.position.z = -0.1; 
-                mesh.add(border);
-                mesh.visible = false; mesh.scale.set(0,0,0);
-                scene.add(mesh);
-                photoMeshes.push(mesh);
-            }
-        }
+    for (let i = 0; i < photoTextures.length; i++) {
+
+        const texture = photoTextures[i];
+
+        // lấy kích thước ảnh gốc
+        const imgW = texture.image.width;
+        const imgH = texture.image.height;
+        const aspect = imgW / imgH;
+
+        const baseHeight = 10;
+        const baseWidth = baseHeight * aspect;
+
+        // geometry theo đúng tỉ lệ ảnh
+        const geo = new THREE.PlaneGeometry(baseWidth, baseHeight);
+
+        const mat = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            transparent: true
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+
+        // viền ảnh
+        const borderGeo = new THREE.PlaneGeometry(
+            baseWidth + 0.5,
+            baseHeight + 0.5
+        );
+        const border = new THREE.Mesh(borderGeo, borderMat);
+        border.position.z = -0.1;
+        mesh.add(border);
+
+        // trạng thái ban đầu
+        mesh.visible = false;
+        mesh.scale.set(0, 0, 0);
+
+        scene.add(mesh);
+        photoMeshes.push(mesh);
+    }
+}
+
 
         function createDecorations() {
             // MERRY CHRISTMAS Vandiep
@@ -438,7 +495,7 @@
             } else if (state === 'EXPLODE') {
                 titleMesh.visible = false; starMesh.visible = false; loveMesh.visible = false;
                 const baseAngle = groupGold.rotation.y; 
-                const angleStep = (Math.PI * 2) / 5;
+                const angleStep = (Math.PI * 2) / photoMeshes.length;
                 let bestIdx = 0; let maxZ = -999;
                 photoMeshes.forEach((mesh, i) => {
                     mesh.visible = true;
